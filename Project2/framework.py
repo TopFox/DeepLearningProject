@@ -108,13 +108,12 @@ class TanH(Module):
         return gradwrtoutput * (1/torch.square(torch.cosh(self.tensor)))
 
 
-# TODO: do this bad boy
 class LossMSE(Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, input):
-        return
+    def forward(self, input, prediction):
+        return torch.sum(torch.square(input - prediction)) # hot labels ??
 
-    def backward(self, *gradwrtoutput):
-        return
+    def backward(self, input, prediction):
+        return 2 * (input - prediction)
