@@ -1,20 +1,27 @@
+# Project 2
+# Coded by : Arnaud Savary and Jérémie Guy
+
+# --------------------------------------- Imports --------------------------------------
+
 import framework
 from framework import *
 import matplotlib.pyplot as plt
 
+# --------------------------------------- Generating Data --------------------------------------
+# We first need to generate the data on which the model work
 
 def generateData(pointsNumber, plotPoints=True):
+    # Generating the training and testing points randomely and computing the class the belong to i.e. checking if their distance to the 
+    # center of the circle is smaller than 1/sqrt(2*pi)
     train_input = torch.rand(pointsNumber, 2)
-    train_target = (train_input.subtract(0.5).square().sum(
-        1).sqrt() <= (1/math.sqrt((2*math.pi)))).long()
+    train_target = (train_input.subtract(0.5).square().sum(1).sqrt() <= (1/math.sqrt((2*math.pi)))).long()
     test_input = torch.rand(pointsNumber, 2)
-    test_target = (test_input.subtract(0.5).square().sum(
-        1).sqrt() <= (1/math.sqrt((2*math.pi)))).long()
+    test_target = (test_input.subtract(0.5).square().sum(1).sqrt() <= (1/math.sqrt((2*math.pi)))).long()
 
+    # Plotting the training data points with reference to the circle they should belong in
     if plotPoints:
         plt.title('Train data')
-        plt.gca().add_patch(plt.Circle((0.5, 0.5), 1 /
-                                       math.sqrt((2*math.pi)), color='k', alpha=0.2))
+        plt.gca().add_patch(plt.Circle((0.5, 0.5), 1 / math.sqrt((2*math.pi)), color='k', alpha=0.2))
         for i in range(pointsNumber):
             if train_target[i] == 0:
                 plt.plot(train_input[i][0], train_input[i][1], 'ro')
@@ -23,15 +30,17 @@ def generateData(pointsNumber, plotPoints=True):
         plt.show()
         plt.close()
 
+        # Plotting the training data points with reference to the circle they should belong in
         plt.title('Test data')
-        plt.gca().add_patch(plt.Circle((0.5, 0.5), 1 /
-                                       math.sqrt((2*math.pi)), color='k', alpha=0.2))
+        plt.gca().add_patch(plt.Circle((0.5, 0.5), 1 /math.sqrt((2*math.pi)), color='k', alpha=0.2))
         for i in range(pointsNumber):
             if test_target[i] == 0:
                 plt.plot(test_input[i][0], test_input[i][1], 'ro')
             else:
                 plt.plot(test_input[i][0], test_input[i][1], 'go')
         plt.show()
+
+    # the function returns the needed data
     return train_input, train_target, test_input, test_target
 
 
