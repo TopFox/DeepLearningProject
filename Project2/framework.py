@@ -7,12 +7,15 @@ from typing import ForwardRef
 import torch
 import math
 
-torch.set_grad_enabled(False) # As per the project instructions, we deactivate the autograd option
+# As per the project instructions, we deactivate the autograd option
+torch.set_grad_enabled(False)
 
 # --------------------------------------- Module Structure --------------------------------------
 # We will define here the basic structure of every module that will constitute our model
 
 # Defining class Module that will be implemented by every subclass
+
+
 class Module(object):
     def __init__(self):
         super().__init__()
@@ -27,7 +30,7 @@ class Module(object):
         raise NotImplementedError
 
     # optional : only some of the modules need to implement the method - thus the return None
-    # method to return the parameters 
+    # method to return the parameters
     def param(self):
         return None
 
@@ -39,6 +42,8 @@ class Module(object):
 # We now need to define how our network is entwined and links every module and their respective methods together
 
 # Sequential Module : this allows one to create the sequence of modules and execute the structure of the model that we want
+
+
 class Sequential(Module):
     def __init__(self, *modules):
         super().__init__()
@@ -73,21 +78,24 @@ class Sequential(Module):
         reversedParamaters = []
 
         # for every module we call its backward method so it computes the gradient (with respect to the output)
-        # and the new parameters that have to be transmitted to the previous layer 
+        # and the new parameters that have to be transmitted to the previous layer
         for index, module in enumerate(reversedModules):
-            module.tensor = reversedSequence[index] # getting the correct module
-            gradwrtoutput = module.backward(gradwrtoutput) # computing the gradiant
-            if module.name == 'Linear': # for the Linear module, get the updated parameters
+            # getting the correct module
+            module.tensor = reversedSequence[index]
+            gradwrtoutput = module.backward(
+                gradwrtoutput)  # computing the gradiant
+            if module.name == 'Linear':  # for the Linear module, get the updated parameters
                 for parameter in module.param()[::-1]:
                     reversedParamaters.append(parameter)
 
-        self.parameters = reversedParamaters[::-1] # updating the new parameters with the ones fetched from backwards
+        # updating the new parameters with the ones fetched from backwards
+        self.parameters = reversedParamaters[::-1]
 
     # Method to fetch the parameters (used for Linear)
     def param(self):
         return self.parameters
 
-    # Method to put back the gradient to zero : this will be used before backpropagating as we need to compute the new parameters 
+    # Method to put back the gradient to zero : this will be used before backpropagating as we need to compute the new parameters
     def zero_grad(self):
         for module in self.modules:
             module.zero_grad()
@@ -96,28 +104,31 @@ class Sequential(Module):
 
 # Linear Module : this modules allows us to change the number of nodes (input/ouput) inside the layer. Each of the nodes are
 # weighted and biased - the computation of these weights and bias will then allow the model to make predictions with a given input
+
+
 class Linear(Module):
-    def __init__(self, startDimension, endDimension, tanh=True):
+    def __init__(self, startDimension, endDimension, activation_function='TanH'):
         super().__init__()
         self.name = 'Linear'
 
         self.startDimension = startDimension
         self.endDimension = endDimension
-        self.tensor = torch.empty(1, 1) # this will be the tensor used for the computations of the weights and biases during training
+        # this will be the tensor used for the computations of the weights and biases during training
+        self.tensor = torch.empty(1, 1)
 
         ##### initalizing the wights and biases #####
 
         # There are a few methods of initializaion for the wieghts and biases. As we use ReLU and TanH for our
-        # modules, we used two different methods of initializaion that have an impact on the standard deviation 
-        # depending on the module : 
+        # modules, we used two different methods of initializaion that have an impact on the standard deviation
+        # depending on the module :
 
         # If we use tanh as activation function, it is better to initialize bias and weights using Xavier
-        if tanh:
+        if activation_function == 'TanH':
             std = math.sqrt(1./(startDimension+endDimension))
         # If we use ReLu as the activation function, we initialize with He
         else:
             std = math.sqrt(2./(startDimension+endDimension))
-        
+
         self.w = torch.empty(startDimension, endDimension).normal_(0, std)
         self.b = torch.empty(endDimension).normal_(0, std)
         self.dw = torch.zeros(startDimension, endDimension)
@@ -141,7 +152,7 @@ class Linear(Module):
 
     # sending the parameters (here list of dimension 2 to easily get w,dw or b,db)
     def param(self):
-        return [[self.w, self.dw], [self.b, self.db]] 
+        return [[self.w, self.dw], [self.b, self.db]]
 
     # Putting the gradient back to zero to be able to recompute it using new parameters
     def zero_grad(self):
@@ -149,7 +160,7 @@ class Linear(Module):
         self.db.zero_()
 
 # --------------------------------------- Activation Functions --------------------------------------
-# Here we define the activation functions which will allow us to transition between two hidden layers of our model. 
+# Here we define the activation functions which will allow us to transition between two hidden layers of our model.
 
 
 # Method ReLU : its a method which sends the output of a layer as the input of the next layer as max(0,input)
@@ -169,6 +180,8 @@ class ReLu(Module):
         return gradwrtoutput*(self.tensor > 0).float()
 
 # Method TanH : very similar to ReLU put using the TanH (and its derivative) function(s) to send inputs to the next layer
+
+
 class TanH(Module):
     def __init__(self):
         super().__init__()
@@ -186,10 +199,12 @@ class TanH(Module):
 
 # --------------------------------------- Error criterion --------------------------------------
 # Function to compute the error of the model. This is the function we use during the test process to
-# determine how good the model fares and if it learns correctly. 
+# determine how good the model fares and if it learns correctly.
 
 # In the Mean Squared Error we compute the error between the target values. In our case we need to classify if a point
-# is inside and outside our circle respecively as 1 and 0. 
+# is inside and outside our circle respecively as 1 and 0.
+
+
 class LossMSE(Module):
     def __init__(self):
         super().__init__()
@@ -201,7 +216,7 @@ class LossMSE(Module):
         prediction = torch.reshape(prediction, (len(input), 1))
         return 1/len(input)*torch.sum(torch.square(input.sub(prediction)))
 
-    # Derivative of the forward pass criterion error : we don't need any more sum as the first MSE backward gives 
+    # Derivative of the forward pass criterion error : we don't need any more sum as the first MSE backward gives
     def backward(self, input, prediction):
         prediction = torch.reshape(prediction, (len(input), 1))
         return 2 * input.sub(prediction)
@@ -210,6 +225,8 @@ class LossMSE(Module):
 # The optimizer allows the nodel to do itslef some fine-tuning on the parameters during the training process
 
 # Stochastic Gradient descent allows to fine tune the weights and bias parameters during the backpropagation
+
+
 class SGD():
     def __init__(self, parameters, lr, wd):
         self.name = 'SGD'

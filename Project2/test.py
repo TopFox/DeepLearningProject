@@ -16,14 +16,17 @@ def generateData(pointsNumber, plotPoints=True):
     # Generating the training and testing points randomely and computing the class the belong to i.e. checking if their distance to the
     # center of the circle is smaller than 1/sqrt(2*pi)
     train_input = torch.rand(pointsNumber, 2)
-    train_target = (train_input.subtract(0.5).square().sum(1).sqrt() <= (1/math.sqrt((2*math.pi)))).long()
+    train_target = (train_input.subtract(0.5).square().sum(
+        1).sqrt() <= (1/math.sqrt((2*math.pi)))).long()
     test_input = torch.rand(pointsNumber, 2)
-    test_target = (test_input.subtract(0.5).square().sum(1).sqrt() <= (1/math.sqrt((2*math.pi)))).long()
+    test_target = (test_input.subtract(0.5).square().sum(
+        1).sqrt() <= (1/math.sqrt((2*math.pi)))).long()
 
     # Plotting the training data points with reference to the circle they should belong in
     if plotPoints:
         plt.title('Train data')
-        plt.gca().add_patch(plt.Circle((0.5, 0.5), 1 /math.sqrt((2*math.pi)), color='k', alpha=0.2))
+        plt.gca().add_patch(plt.Circle((0.5, 0.5), 1 /
+                                       math.sqrt((2*math.pi)), color='k', alpha=0.2))
         for i in range(pointsNumber):
             if train_target[i] == 0:
                 # points inside the circle
@@ -32,11 +35,11 @@ def generateData(pointsNumber, plotPoints=True):
                 # points outside the circle
                 plt.plot(train_input[i][0], train_input[i][1], 'go')
         plt.show()
-        
 
         # Plotting the training data points with reference to the circle they should belong in
         plt.title('Test data')
-        plt.gca().add_patch(plt.Circle((0.5, 0.5), 1 /math.sqrt((2*math.pi)), color='k', alpha=0.2))
+        plt.gca().add_patch(plt.Circle((0.5, 0.5), 1 /
+                                       math.sqrt((2*math.pi)), color='k', alpha=0.2))
         for i in range(pointsNumber):
             if test_target[i] == 0:
                 # points inside the circle
@@ -52,30 +55,35 @@ def generateData(pointsNumber, plotPoints=True):
 # --------------------------------------- Training Model --------------------------------------
 
 # Main function to train the model to our problem
-def train_model(model, criterion, train_input, train_target, test_input, test_target, mini_batch_size=50, nb_epochs=250, lr=5e-3, wd=1e-6, plotPoints=True):
+
+
+def train_model(model, criterion, train_input, train_target, test_input, test_target, mini_batch_size=50, nb_epochs=250, lr=5e-3, wd=1e-6, mustPrint=False, plotLoss=False, plotPoints=False):
     # initializing the optimizer
     optimizer = framework.SGD(model.param(), lr=lr, wd=wd)
     losses = []
-    
+
     # Training for every epoch
     for e in range(nb_epochs):
-        acc_loss = 0 # accumulated loss
+        acc_loss = 0  # accumulated loss
         numberOfTrainErrors = 0
 
-        # We iteratively train using the batch size 
+        # We iteratively train using the batch size
         for b in range(0, train_input.size(0), mini_batch_size):
 
             # runing the model and fetching its output
-            train_output = model.forward(train_input.narrow(0, b, mini_batch_size)) 
+            train_output = model.forward(
+                train_input.narrow(0, b, mini_batch_size))
             # computing the training loss
-            loss = criterion.forward(train_output, train_target.narrow(0, b, mini_batch_size))
+            loss = criterion.forward(
+                train_output, train_target.narrow(0, b, mini_batch_size))
             acc_loss += loss.item()
 
             # Putting back the gradient to zero before computing the new one during backpropagation
             model.zero_grad()
 
             # computing said backpropagation
-            model.backward(criterion.backward(train_output, train_target.narrow(0, b, mini_batch_size)))
+            model.backward(criterion.backward(
+                train_output, train_target.narrow(0, b, mini_batch_size)))
 
             # optimizing the parameters with the learning rate (and, if activated, weight decay)
             optimizer.step(model.param())
@@ -96,11 +104,12 @@ def train_model(model, criterion, train_input, train_target, test_input, test_ta
         # At each epoch we want to see the evolution of the model performances on the test set
         test_prediction = []
         numberOfTestErrors = 0
-        
-        # We test the model for every batch on the test data  
+
+        # We test the model for every batch on the test data
         for b in range(0, test_input.size(0), mini_batch_size):
             # runing the model and fetching its output
-            test_output = model.forward(test_input.narrow(0, b, mini_batch_size))
+            test_output = model.forward(
+                test_input.narrow(0, b, mini_batch_size))
 
             for k in range(mini_batch_size):
                 # rounding the results to compute the output class prediction
@@ -111,18 +120,20 @@ def train_model(model, criterion, train_input, train_target, test_input, test_ta
             # At the last epoch we add the final test output to the model prediction
             if e == nb_epochs-1:
                 test_prediction.extend(test_output)
-                
-        # Every 5 epoch print the test error
-        if e % 5 == 0:
-            print('Epoch:', e, ', percentage of errors in final test {:.2f}'.format(numberOfTestErrors/len(test_input)*100), '%')
-        
-    # Plotting the loss 
-    plt.title('Evolution of loss')
-    plt.ylabel('accumulated loss')
-    plt.xlabel('Epochs')
 
-    plt.plot(range(nb_epochs), losses)
-    plt.show()
+        # Every 5 epoch print the test error
+        if e % 5 == 0 and mustPrint:
+            print('Epoch:', e, ', percentage of errors in final test {:.2f}'.format(
+                numberOfTestErrors/len(test_input)*100), '%')
+
+    if plotLoss:
+        # Plotting the loss
+        plt.title('Evolution of loss')
+        plt.ylabel('accumulated loss')
+        plt.xlabel('Epochs')
+
+        plt.plot(range(nb_epochs), losses)
+        plt.show()
 
     # Plotting the visual representation of the output values
     if plotPoints:
@@ -133,14 +144,17 @@ def train_model(model, criterion, train_input, train_target, test_input, test_ta
             else:
                 # points that are predicted as inside the circle
                 plt.plot(test_input[i][0], test_input[i][1], 'go')
-        
-        title = 'Predictions of the model with :\n' + ' lr=' + str(lr) + ', wd=' + str(wd) + ' and mini_batch_size=' + str(mini_batch_size)
+
+        title = 'Predictions of the model with :\n' + ' lr=' + \
+            str(lr) + ', wd=' + str(wd) + \
+            ' and mini_batch_size=' + str(mini_batch_size)
         plt.title(title)
         plt.xlabel('x coordinates')
         plt.ylabel('y coordinates')
-        
+
         # reference circle
-        plt.gca().add_patch(plt.Circle((0.5, 0.5), 1 /math.sqrt((2*math.pi)), color='k', alpha=0.2))
+        plt.gca().add_patch(plt.Circle((0.5, 0.5), 1 /
+                                       math.sqrt((2*math.pi)), color='k', alpha=0.2))
         plt.show()
 
     return numberOfTestErrors
@@ -148,6 +162,7 @@ def train_model(model, criterion, train_input, train_target, test_input, test_ta
 # --------------------------------------- Tuning the model--------------------------------------
 # This section choses different parameters value to train the model and evaluates it to keep the one with
 # the best performances
+
 
 def model_tuning(number_of_runs=5):
     # Fixed parameters
@@ -170,10 +185,15 @@ def model_tuning(number_of_runs=5):
                             i = 0
                             while i < number_of_runs:
                                 # Creation of the model
-                                linear1 = framework.Linear(2, 25, tanh=False)
-                                linear2 = framework.Linear(25, 25)
-                                linear3 = framework.Linear(25, 25)
-                                linear4 = framework.Linear(25, 1)
+                                linear1 = framework.Linear(
+                                    2, 25, activation_function=act_fun_1.name)
+                                linear2 = framework.Linear(
+                                    25, 25, activation_function=act_fun_2.name)
+                                linear3 = framework.Linear(
+                                    25, 25, activation_function=act_fun_3.name)
+                                linear4 = framework.Linear(
+                                    25, 1, activation_function=act_fun_4.name)
+
                                 criterion = framework.LossMSE()
                                 train_input, train_target, validation_input, validation_target = generateData(
                                     1000, plotPoints=False)
@@ -196,6 +216,8 @@ def model_tuning(number_of_runs=5):
 
                             # If the mean of the number of errors on valdiation sets is better than what we previously had, we store the current parameters
                             if np.mean(validation_errors) < best_validation_errors:
+                                best_validation_errors = np.mean(
+                                    validation_errors)
                                 best_lr = lr
                                 best_wd = wd
                                 best_act_fun_1 = act_fun_1
@@ -212,26 +234,28 @@ def model_tuning(number_of_runs=5):
 # --------------------------------------- Executing training and testing --------------------------------------
 # we define here all of the layers, parameters and settings to reun the model
 
+
 def test_framework():
     # Parameters
     nb_epochs = 250
     mini_batch_size = 50
 
+    # Model tuning
+    best_lr, best_wd, best_act_fun_1, best_act_fun_2, best_act_fun_3, best_act_fun_4 = model_tuning()
+
     # Framework - hidden layers
-    linear1 = framework.Linear(2, 25, tanh=False)
-    linear2 = framework.Linear(25, 25)
-    linear3 = framework.Linear(25, 25)
-    linear4 = framework.Linear(25, 1)
+    linear1 = framework.Linear(2, 25, activation_function=best_act_fun_1.name)
+    linear2 = framework.Linear(25, 25, activation_function=best_act_fun_2.name)
+    linear3 = framework.Linear(25, 25, activation_function=best_act_fun_3.name)
+    linear4 = framework.Linear(25, 1, activation_function=best_act_fun_4.name)
     criterion = framework.LossMSE()
 
     # Generating the data
-    train_input, train_target, test_input, test_target = generateData(1000, plotPoints=True)
+    train_input, train_target, test_input, test_target = generateData(
+        1000, plotPoints=True)
 
     # Creating the model
     # model = framework.Sequential(linear1, relu, linear2, tanh, linear3, tanh, linear4, relu)
-
-    # Model tuning
-    best_lr, best_wd, best_act_fun_1, best_act_fun_2, best_act_fun_3, best_act_fun_4 = model_tuning()
 
     # Model
     model = framework.Sequential(
@@ -239,9 +263,10 @@ def test_framework():
 
     # Training the model
     # train_model(model, criterion, train_input, train_target, test_input, test_target, mini_batch_size=mini_batch_size, nb_epochs=nb_epochs)
-    
+
     # Train model
-    _ = train_model(model, criterion, train_input, train_target, test_input, test_target, mini_batch_size=mini_batch_size, nb_epochs=nb_epochs, lr=best_lr, wd=best_wd)
+    _ = train_model(model, criterion, train_input, train_target, test_input, test_target,
+                    mini_batch_size=mini_batch_size, nb_epochs=nb_epochs, lr=best_lr, wd=best_wd)
 
 
 test_framework()
