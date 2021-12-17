@@ -89,7 +89,10 @@ def train_model(model, criterion, train_input, train_target, test_input, test_ta
                 #     test_output[k] = 0
                 # else:
                 #     test_output[k] = 1
-                test_output[k] = round(float((test_output[k] + 1)/2))
+                # print("before", test_output[k])
+                # test_output[k] = round(float((test_output[k] + 1)/2))
+                test_output[k] = round(float(test_output[k]))
+                # print(test_output[k])
                 if test_target[b + k] != test_output[k]:
                     numberOfTestErrors += 1
             if e == nb_epochs-1:
@@ -132,8 +135,7 @@ def test_framework():
         1000, plotPoints=False)
 
     # Model
-    model = framework.Sequential(
-        linear1, relu, linear2, tanh, linear3, tanh, linear4, tanh)
+    model = framework.Sequential(linear1, relu, linear2, tanh, linear3, tanh, linear4, relu)
 
     # Train model
     train_model(model, criterion, train_input, train_target, test_input,
