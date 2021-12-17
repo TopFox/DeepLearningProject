@@ -11,9 +11,11 @@ import numpy as np
 # --------------------------------------- Generating Data --------------------------------------
 # We first need to generate the data on which the model work
 
-# We nee to generate 1000 points that have two coordinates between 0 and 1 using a normal distribution. 
+# We nee to generate 1000 points that have two coordinates between 0 and 1 using a normal distribution.
 # The main point of the algorithm is to predict if any given point is inside of a circle of radius
 # 1/sqrt(2*pi)
+
+
 def generateData(pointsNumber, plotPoints=True):
     # Generating the training and testing points randomely and computing the class the belong to i.e. checking if their distance to the
     # center of the circle is smaller than 1/sqrt(2*pi)
@@ -174,58 +176,63 @@ def model_tuning(number_of_runs=5):
     # Parameters to tune
     lrs = [1e-3, 5e-3, 1e-2]
     wds = [False, 1e-6]
-    activation_functions = [framework.ReLu(), framework.TanH()]
+    relu = framework.ReLu()
+    tanh = framework.TanH()
+    activation_functions_suggestions = [[tanh, tanh, tanh, tanh], [
+        tanh, relu, relu, tanh], [relu, relu, tanh, tanh]]
     best_validation_errors = 1000
 
     for lr in lrs:
         for wd in wds:
-            for act_fun_1 in activation_functions:
-                for act_fun_2 in activation_functions:
-                    for act_fun_3 in activation_functions:
-                        for act_fun_4 in activation_functions:
-                            validation_errors = []
-                            i = 0
-                            while i < number_of_runs:
-                                # Creation of the model
-                                linear1 = framework.Linear(
-                                    2, 25, activation_function=act_fun_1.name)
-                                linear2 = framework.Linear(
-                                    25, 25, activation_function=act_fun_2.name)
-                                linear3 = framework.Linear(
-                                    25, 25, activation_function=act_fun_3.name)
-                                linear4 = framework.Linear(
-                                    25, 1, activation_function=act_fun_4.name)
+            for activation_functions in activation_functions_suggestions:
+                act_fun_1 = activation_functions[0]
+                act_fun_2 = activation_functions[1]
+                act_fun_3 = activation_functions[2]
+                act_fun_4 = activation_functions[3]
+                validation_errors = []
+                i = 0
+                while i < number_of_runs:
+                    # Creation of the model
+                    linear1 = framework.Linear(
+                        2, 25, activation_function=act_fun_1.name)
+                    linear2 = framework.Linear(
+                        25, 25, activation_function=act_fun_2.name)
+                    linear3 = framework.Linear(
+                        25, 25, activation_function=act_fun_3.name)
+                    linear4 = framework.Linear(
+                        25, 1, activation_function=act_fun_4.name)
 
-                                criterion = framework.LossMSE()
-                                train_input, train_target, validation_input, validation_target = generateData(
-                                    1000, plotPoints=False)
-                                model = framework.Sequential(
-                                    linear1, act_fun_1, linear2, act_fun_2, linear3, act_fun_3, linear4, act_fun_4)
+                    criterion = framework.LossMSE()
+                    train_input, train_target, validation_input, validation_target = generateData(
+                        1000, plotPoints=False)
+                    model = framework.Sequential(
+                        linear1, act_fun_1, linear2, act_fun_2, linear3, act_fun_3, linear4, act_fun_4)
 
-                                # We compute the number of errors on the validation set and append it to a list
-                                validation_error = train_model(model, criterion, train_input, train_target, validation_input, validation_target,
-                                                               mini_batch_size=mini_batch_size, nb_epochs=nb_epochs, mustPrint=False, plotLoss=False, plotPoints=False)
+                    # We compute the number of errors on the validation set and append it to a list
+                    validation_error = train_model(model, criterion, train_input, train_target, validation_input, validation_target,
+                                                   mini_batch_size=mini_batch_size, nb_epochs=nb_epochs, mustPrint=False, plotLoss=False, plotPoints=False)
 
-                                # TODO: remove debug stuff
-                                if validation_error < 450:
-                                    i += 1
-                                    validation_errors.append(validation_error)
-                                else:
-                                    print(validation_error)
+                    # TODO: remove debug stuff
+                    if validation_error < 450:
+                        i += 1
+                        validation_errors.append(validation_error)
+                    else:
+                        print(validation_error)
+                        print(activation_functions)
 
-                            print('Lr =', str(lr) + ', wd =', str(wd) + ', activation functions =',
-                                  [act_fun_1.name, act_fun_2.name, act_fun_3.name, act_fun_4.name], ', mean validation error =', np.mean(validation_errors))
+                print('Lr =', str(lr) + ', wd =', str(wd) + ', activation functions =',
+                      [act_fun_1.name, act_fun_2.name, act_fun_3.name, act_fun_4.name], ', mean validation error =', np.mean(validation_errors))
 
-                            # If the mean of the number of errors on valdiation sets is better than what we previously had, we store the current parameters
-                            if np.mean(validation_errors) < best_validation_errors:
-                                best_validation_errors = np.mean(
-                                    validation_errors)
-                                best_lr = lr
-                                best_wd = wd
-                                best_act_fun_1 = act_fun_1
-                                best_act_fun_2 = act_fun_2
-                                best_act_fun_3 = act_fun_3
-                                best_act_fun_4 = act_fun_4
+                # If the mean of the number of errors on valdiation sets is better than what we previously had, we store the current parameters
+                if np.mean(validation_errors) < best_validation_errors:
+                    best_validation_errors = np.mean(
+                        validation_errors)
+                    best_lr = lr
+                    best_wd = wd
+                    best_act_fun_1 = act_fun_1
+                    best_act_fun_2 = act_fun_2
+                    best_act_fun_3 = act_fun_3
+                    best_act_fun_4 = act_fun_4
 
     # Printing of the best parameters
     print('--- Best parameters found ---')
@@ -237,13 +244,19 @@ def model_tuning(number_of_runs=5):
 # we define here all of the layers, parameters and settings to reun the model
 
 
-def test_framework():
+def test_framework(modelTuning=True):
     # Parameters
     nb_epochs = 250
     mini_batch_size = 50
 
     # Model tuning
-    best_lr, best_wd, best_act_fun_1, best_act_fun_2, best_act_fun_3, best_act_fun_4 = model_tuning()
+    if modelTuning:
+        best_lr, best_wd, best_act_fun_1, best_act_fun_2, best_act_fun_3, best_act_fun_4 = model_tuning()
+    # Use directly the best parameters we found to gain some time
+    else:
+        relu = framework.ReLu()
+        tanh = framework.TanH()
+        best_lr, best_wd, best_act_fun_1, best_act_fun_2, best_act_fun_3, best_act_fun_4 = 0.01, 1e-6, tanh, relu, relu, tanh
 
     # Framework - hidden layers
     linear1 = framework.Linear(2, 25, activation_function=best_act_fun_1.name)
@@ -254,7 +267,7 @@ def test_framework():
 
     # Generating the data
     train_input, train_target, test_input, test_target = generateData(
-        1000, plotPoints=True)
+        1000, plotPoints=False)
 
     # Creating the model
     # model = framework.Sequential(linear1, relu, linear2, tanh, linear3, tanh, linear4, relu)
@@ -268,7 +281,7 @@ def test_framework():
 
     # Train model
     _ = train_model(model, criterion, train_input, train_target, test_input, test_target,
-                    mini_batch_size=mini_batch_size, nb_epochs=nb_epochs, lr=best_lr, wd=best_wd, plotLoss=False, plotPoints=False)
+                    mini_batch_size=mini_batch_size, nb_epochs=nb_epochs, lr=best_lr, wd=best_wd, mustPrint=True, plotLoss=True, plotPoints=True)
 
 
-test_framework()
+test_framework(True)
