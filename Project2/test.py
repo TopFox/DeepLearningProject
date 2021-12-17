@@ -96,7 +96,7 @@ def train_model(model, criterion, train_input, train_target, test_input, test_ta
             if e == nb_epochs-1:
                 for k in range(mini_batch_size):
                     # rounding the results to compute the output class prediction
-                    test_output[k] = round(float(test_output[k]))
+                    train_output[k] = round(float(train_output[k]))
                     # if we have a wrong prediction, increment the error count
                     if train_target[b + k] != train_output[k]:
                         numberOfTrainErrors += 1
@@ -105,30 +105,31 @@ def train_model(model, criterion, train_input, train_target, test_input, test_ta
         acc_loss /= train_input.size(0)
         losses.append(acc_loss)
 
-        # At each epoch we want to see the evolution of the model performances on the test set
-        test_prediction = []
-        numberOfTestErrors = 0
+    # At each epoch we want to see the evolution of the model performances on the test set
+    test_prediction = []
+    numberOfTestErrors = 0
 
-        # We test the model for every batch on the test data
-        for b in range(0, test_input.size(0), mini_batch_size):
-            # runing the model and fetching its output
-            test_output = model.forward(
-                test_input.narrow(0, b, mini_batch_size))
+    # We test the model for every batch on the test data
+    for b in range(0, test_input.size(0), mini_batch_size):
+        # runing the model and fetching its output
+        test_output = model.forward(
+            test_input.narrow(0, b, mini_batch_size))
 
-            for k in range(mini_batch_size):
-                # rounding the results to compute the output class prediction
-                test_output[k] = round(float(test_output[k]))
-                # if we have a wrong prediction, increment the error count
-                if test_target[b + k] != test_output[k]:
-                    numberOfTestErrors += 1
-            # At the last epoch we add the final test output to the model prediction
-            if e == nb_epochs-1:
-                test_prediction.extend(test_output)
+        for k in range(mini_batch_size):
+            # rounding the results to compute the output class prediction
+            test_output[k] = round(float(test_output[k]))
+            # if we have a wrong prediction, increment the error count
+            if test_target[b + k] != test_output[k]:
+                numberOfTestErrors += 1
 
-        # Every 5 epoch print the test error
-        if e % 5 == 0 and mustPrint:
-            print('Epoch:', e, ', percentage of errors in final test {:.2f}'.format(
-                numberOfTestErrors/len(test_input)*100), '%')
+        test_prediction.extend(test_output)
+
+    if mustPrint:
+        print('--- Results ---')
+        print('Percentage of errors in train set {:.2f}'.format(
+            numberOfTrainErrors/len(train_input)*100), '%')
+        print('Percentage of errors in test set {:.2f}'.format(
+            numberOfTestErrors/len(test_input)*100), '%')
 
     if plotLoss:
         # Plotting the loss
@@ -182,6 +183,9 @@ def model_tuning(number_of_runs=5):
         tanh, relu, relu, tanh], [relu, relu, tanh, tanh]]
     best_validation_errors = 1000
 
+    print('--- Model tuning ---')
+
+    # Loop on every combination of parameters
     for lr in lrs:
         for wd in wds:
             for activation_functions in activation_functions_suggestions:
@@ -191,7 +195,9 @@ def model_tuning(number_of_runs=5):
                 act_fun_4 = activation_functions[3]
                 validation_errors = []
                 i = 0
-                while i < number_of_runs:
+
+                # Loop on a few runs with the same parameters to get an average number of errors
+                for _ in range(number_of_runs):
                     # Creation of the model
                     linear1 = framework.Linear(
                         2, 25, activation_function=act_fun_1.name)
@@ -212,13 +218,7 @@ def model_tuning(number_of_runs=5):
                     validation_error = train_model(model, criterion, train_input, train_target, validation_input, validation_target,
                                                    mini_batch_size=mini_batch_size, nb_epochs=nb_epochs, mustPrint=False, plotLoss=False, plotPoints=False)
 
-                    # TODO: remove debug stuff
-                    if validation_error < 450:
-                        i += 1
-                        validation_errors.append(validation_error)
-                    else:
-                        print(validation_error)
-                        print(activation_functions)
+                    validation_errors.append(validation_error)
 
                 print('Lr =', str(lr) + ', wd =', str(wd) + ', activation functions =',
                       [act_fun_1.name, act_fun_2.name, act_fun_3.name, act_fun_4.name], ', mean validation error =', np.mean(validation_errors))
@@ -236,7 +236,7 @@ def model_tuning(number_of_runs=5):
 
     # Printing of the best parameters
     print('--- Best parameters found ---')
-    print('Lr =', str(best_lr) + ', wd =', str(wd) + ', activation functions =',
+    print('Lr =', str(best_lr) + ', wd =', str(best_wd) + ', activation functions =',
           [best_act_fun_1.name, best_act_fun_2.name, best_act_fun_3.name, best_act_fun_4.name], ', mean validation error =', best_validation_errors)
     return best_lr, best_wd, best_act_fun_1, best_act_fun_2, best_act_fun_3, best_act_fun_4
 
@@ -256,7 +256,7 @@ def test_framework(modelTuning=True):
     else:
         relu = framework.ReLu()
         tanh = framework.TanH()
-        best_lr, best_wd, best_act_fun_1, best_act_fun_2, best_act_fun_3, best_act_fun_4 = 0.01, 1e-6, tanh, relu, relu, tanh
+        best_lr, best_wd, best_act_fun_1, best_act_fun_2, best_act_fun_3, best_act_fun_4 = 0.005, 1e-6, tanh, relu, relu, tanh
 
     # Framework - hidden layers
     linear1 = framework.Linear(2, 25, activation_function=best_act_fun_1.name)
@@ -269,15 +269,9 @@ def test_framework(modelTuning=True):
     train_input, train_target, test_input, test_target = generateData(
         1000, plotPoints=False)
 
-    # Creating the model
-    # model = framework.Sequential(linear1, relu, linear2, tanh, linear3, tanh, linear4, relu)
-
     # Model
     model = framework.Sequential(
         linear1, best_act_fun_1, linear2, best_act_fun_2, linear3, best_act_fun_3, linear4, best_act_fun_4)
-
-    # Training the model
-    # train_model(model, criterion, train_input, train_target, test_input, test_target, mini_batch_size=mini_batch_size, nb_epochs=nb_epochs)
 
     # Train model
     _ = train_model(model, criterion, train_input, train_target, test_input, test_target,
