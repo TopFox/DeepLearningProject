@@ -143,10 +143,11 @@ def train_model(model, criterion, train_input, train_target, test_input, test_ta
         plt.gca().add_patch(plt.Circle((0.5, 0.5), 1 /math.sqrt((2*math.pi)), color='k', alpha=0.2))
         plt.show()
 
-# --------------------------------------- Executing training and testing --------------------------------------
     return numberOfTestErrors
 
-# we define here all of the payers, parameters and settings to reun the model
+# --------------------------------------- Tuning the model--------------------------------------
+# This section choses different parameters value to train the model and evaluates it to keep the one with
+# the best performances
 
 def model_tuning(number_of_runs=5):
     # Fixed parameters
@@ -208,6 +209,8 @@ def model_tuning(number_of_runs=5):
           [best_act_fun_1.name, best_act_fun_2.name, best_act_fun_3.name, best_act_fun_4.name], ', mean validation error =', best_validation_errors)
     return best_lr, best_wd, best_act_fun_1, best_act_fun_2, best_act_fun_3, best_act_fun_4
 
+# --------------------------------------- Executing training and testing --------------------------------------
+# we define here all of the layers, parameters and settings to reun the model
 
 def test_framework():
     # Parameters
@@ -225,7 +228,8 @@ def test_framework():
     train_input, train_target, test_input, test_target = generateData(1000, plotPoints=True)
 
     # Creating the model
-    model = framework.Sequential(linear1, relu, linear2, tanh, linear3, tanh, linear4, relu)
+    # model = framework.Sequential(linear1, relu, linear2, tanh, linear3, tanh, linear4, relu)
+
     # Model tuning
     best_lr, best_wd, best_act_fun_1, best_act_fun_2, best_act_fun_3, best_act_fun_4 = model_tuning()
 
@@ -234,10 +238,10 @@ def test_framework():
         linear1, best_act_fun_1, linear2, best_act_fun_2, linear3, best_act_fun_3, linear4, best_act_fun_4)
 
     # Training the model
-    train_model(model, criterion, train_input, train_target, test_input, test_target, mini_batch_size=mini_batch_size, nb_epochs=nb_epochs)
+    # train_model(model, criterion, train_input, train_target, test_input, test_target, mini_batch_size=mini_batch_size, nb_epochs=nb_epochs)
+    
     # Train model
-    _ = train_model(model, criterion, train_input, train_target, test_input,
-                    test_target, mini_batch_size=mini_batch_size, nb_epochs=nb_epochs, lr=best_lr, wd=best_wd)
+    _ = train_model(model, criterion, train_input, train_target, test_input, test_target, mini_batch_size=mini_batch_size, nb_epochs=nb_epochs, lr=best_lr, wd=best_wd)
 
 
 test_framework()
