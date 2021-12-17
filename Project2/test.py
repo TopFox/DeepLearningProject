@@ -266,7 +266,7 @@ def test_framework():
 
     # Train model
     _ = train_model(model, criterion, train_input, train_target, test_input, test_target,
-                    mini_batch_size=mini_batch_size, nb_epochs=nb_epochs, lr=best_lr, wd=best_wd)
+                    mini_batch_size=mini_batch_size, nb_epochs=nb_epochs, lr=best_lr, wd=best_wd, plotLoss=False, plotPoints=False)
 
 
 test_framework()
