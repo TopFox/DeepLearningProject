@@ -112,8 +112,11 @@ def train_model(model, criterion, train_input, train_target, test_input, test_ta
 
 
 def model_tuning(number_of_runs=5):
+    # Fixed parameters
     nb_epochs = 100
     mini_batch_size = 50
+
+    # Parameters to tune
     lrs = [1e-3, 5e-3, 1e-2]
     wds = [False, 1e-6]
     activation_functions = [framework.ReLu(), framework.TanH()]
@@ -128,6 +131,7 @@ def model_tuning(number_of_runs=5):
                             validation_errors = []
                             i = 0
                             while i < number_of_runs:
+                                # Creation of the model
                                 linear1 = framework.Linear(2, 25, tanh=False)
                                 linear2 = framework.Linear(25, 25)
                                 linear3 = framework.Linear(25, 25)
@@ -137,9 +141,12 @@ def model_tuning(number_of_runs=5):
                                     1000, plotPoints=False)
                                 model = framework.Sequential(
                                     linear1, act_fun_1, linear2, act_fun_2, linear3, act_fun_3, linear4, act_fun_4)
+
+                                # We compute the number of errors on the validation set and append it to a list
                                 validation_error = train_model(model, criterion, train_input, train_target, validation_input, validation_target,
                                                                mini_batch_size=mini_batch_size, nb_epochs=nb_epochs, mustPrint=False, plotLoss=False, plotPoints=False)
-                                # TODO : Remove if
+
+                                # TODO: remove debug stuff
                                 if validation_error < 450:
                                     i += 1
                                     validation_errors.append(validation_error)
@@ -149,6 +156,7 @@ def model_tuning(number_of_runs=5):
                             print('Lr =', str(lr) + ', wd =', str(wd) + ', activation functions =',
                                   [act_fun_1.name, act_fun_2.name, act_fun_3.name, act_fun_4.name], ', mean validation error =', np.mean(validation_errors))
 
+                            # If the mean of the number of errors on valdiation sets is better than what we previously had, we store the current parameters
                             if np.mean(validation_errors) < best_validation_errors:
                                 best_lr = lr
                                 best_wd = wd
@@ -156,6 +164,8 @@ def model_tuning(number_of_runs=5):
                                 best_act_fun_2 = act_fun_2
                                 best_act_fun_3 = act_fun_3
                                 best_act_fun_4 = act_fun_4
+
+    # Printing of the best parameters
     print('--- Best parameters found ---')
     print('Lr =', str(best_lr) + ', wd =', str(wd) + ', activation functions =',
           [best_act_fun_1.name, best_act_fun_2.name, best_act_fun_3.name, best_act_fun_4.name], ', mean validation error =', best_validation_errors)
