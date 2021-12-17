@@ -27,6 +27,8 @@ def generateData(pointsNumber, plotPoints=True):
     # Plotting the training data points with reference to the circle they should belong in
     if plotPoints:
         plt.title('Train data')
+        plt.xlabel('x coordinates')
+        plt.ylabel('y coordinates')
         plt.gca().add_patch(plt.Circle((0.5, 0.5), 1 /
                                        math.sqrt((2*math.pi)), color='k', alpha=0.2))
         for i in range(pointsNumber):
@@ -40,6 +42,8 @@ def generateData(pointsNumber, plotPoints=True):
 
         # Plotting the training data points with reference to the circle they should belong in
         plt.title('Test data')
+        plt.xlabel('x coordinates')
+        plt.ylabel('y coordinates')
         plt.gca().add_patch(plt.Circle((0.5, 0.5), 1 /
                                        math.sqrt((2*math.pi)), color='k', alpha=0.2))
         for i in range(pointsNumber):
