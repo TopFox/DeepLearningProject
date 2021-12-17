@@ -11,7 +11,9 @@ import numpy as np
 # --------------------------------------- Generating Data --------------------------------------
 # We first need to generate the data on which the model work
 
-
+# We nee to generate 1000 points that have two coordinates between 0 and 1 using a normal distribution. 
+# The main point of the algorithm is to predict if any given point is inside of a circle of radius
+# 1/sqrt(2*pi)
 def generateData(pointsNumber, plotPoints=True):
     # Generating the training and testing points randomely and computing the class the belong to i.e. checking if their distance to the
     # center of the circle is smaller than 1/sqrt(2*pi)
