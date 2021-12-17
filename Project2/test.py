@@ -6,6 +6,7 @@
 import framework
 from framework import *
 import matplotlib.pyplot as plt
+import numpy as np
 
 # --------------------------------------- Generating Data --------------------------------------
 # We first need to generate the data on which the model work
@@ -49,7 +50,7 @@ def generateData(pointsNumber, plotPoints=True):
     return train_input, train_target, test_input, test_target
 
 
-def train_model(model, criterion, train_input, train_target, test_input, test_target, mini_batch_size=50, nb_epochs=250, lr=5e-3, wd=1e-6, plotPoints=True):
+def train_model(model, criterion, train_input, train_target, test_input, test_target, mini_batch_size=50, nb_epochs=250, lr=5e-3, wd=1e-6, mustPrint=True, plotLoss=True, plotPoints=True):
     optimizer = framework.SGD(model.param(), lr=lr, wd=wd)
     losses = []
     for e in range(nb_epochs):
@@ -88,12 +89,13 @@ def train_model(model, criterion, train_input, train_target, test_input, test_ta
                     numberOfTestErrors += 1
             if e == nb_epochs-1:
                 test_prediction.extend(test_output)
-        if e % 5 == 0:
+        if e % 5 == 0 and mustPrint:
             print('Epoch:', e, ', number of errors in final test',
                   numberOfTestErrors)
-    plt.title('Evolution of loss')
-    plt.plot(range(250), losses)
-    plt.show()
+    if plotLoss:
+        plt.title('Evolution of loss')
+        plt.plot(range(250), losses)
+        plt.show()
 
     if plotPoints:
         for i in range(test_input.size(0)):
@@ -106,6 +108,59 @@ def train_model(model, criterion, train_input, train_target, test_input, test_ta
                                        math.sqrt((2*math.pi)), color='k', alpha=0.2))
         plt.show()
 
+    return numberOfTestErrors
+
+
+def model_tuning(number_of_runs=5):
+    nb_epochs = 100
+    mini_batch_size = 50
+    lrs = [1e-3, 5e-3, 1e-2]
+    wds = [False, 1e-6]
+    activation_functions = [framework.ReLu(), framework.TanH()]
+    best_validation_errors = 1000
+
+    for lr in lrs:
+        for wd in wds:
+            for act_fun_1 in activation_functions:
+                for act_fun_2 in activation_functions:
+                    for act_fun_3 in activation_functions:
+                        for act_fun_4 in activation_functions:
+                            validation_errors = []
+                            i = 0
+                            while i < number_of_runs:
+                                linear1 = framework.Linear(2, 25, tanh=False)
+                                linear2 = framework.Linear(25, 25)
+                                linear3 = framework.Linear(25, 25)
+                                linear4 = framework.Linear(25, 1)
+                                criterion = framework.LossMSE()
+                                train_input, train_target, validation_input, validation_target = generateData(
+                                    1000, plotPoints=False)
+                                model = framework.Sequential(
+                                    linear1, act_fun_1, linear2, act_fun_2, linear3, act_fun_3, linear4, act_fun_4)
+                                validation_error = train_model(model, criterion, train_input, train_target, validation_input, validation_target,
+                                                               mini_batch_size=mini_batch_size, nb_epochs=nb_epochs, mustPrint=False, plotLoss=False, plotPoints=False)
+                                # TODO : Remove if
+                                if validation_error < 450:
+                                    i += 1
+                                    validation_errors.append(validation_error)
+                                else:
+                                    print(validation_error)
+
+                            print('Lr =', str(lr) + ', wd =', str(wd) + ', activation functions =',
+                                  [act_fun_1.name, act_fun_2.name, act_fun_3.name, act_fun_4.name], ', mean validation error =', np.mean(validation_errors))
+
+                            if np.mean(validation_errors) < best_validation_errors:
+                                best_lr = lr
+                                best_wd = wd
+                                best_act_fun_1 = act_fun_1
+                                best_act_fun_2 = act_fun_2
+                                best_act_fun_3 = act_fun_3
+                                best_act_fun_4 = act_fun_4
+    print('--- Best parameters found ---')
+    print('Lr =', str(best_lr) + ', wd =', str(wd) + ', activation functions =',
+          [best_act_fun_1.name, best_act_fun_2.name, best_act_fun_3.name, best_act_fun_4.name], ', mean validation error =', best_validation_errors)
+    return best_lr, best_wd, best_act_fun_1, best_act_fun_2, best_act_fun_3, best_act_fun_4
+
 
 def test_framework():
     # Parameters
@@ -117,21 +172,22 @@ def test_framework():
     linear2 = framework.Linear(25, 25)
     linear3 = framework.Linear(25, 25)
     linear4 = framework.Linear(25, 1)
-    relu = framework.ReLu()
-    tanh = framework.TanH()
     criterion = framework.LossMSE()
 
     # Data
     train_input, train_target, test_input, test_target = generateData(
         1000, plotPoints=False)
 
+    # Model tuning
+    best_lr, best_wd, best_act_fun_1, best_act_fun_2, best_act_fun_3, best_act_fun_4 = model_tuning()
+
     # Model
     model = framework.Sequential(
-        linear1, relu, linear2, tanh, linear3, tanh, linear4, relu)
+        linear1, best_act_fun_1, linear2, best_act_fun_2, linear3, best_act_fun_3, linear4, best_act_fun_4)
 
     # Train model
-    train_model(model, criterion, train_input, train_target, test_input,
-                test_target, mini_batch_size=mini_batch_size, nb_epochs=nb_epochs)
+    _ = train_model(model, criterion, train_input, train_target, test_input,
+                    test_target, mini_batch_size=mini_batch_size, nb_epochs=nb_epochs, lr=best_lr, wd=best_wd)
 
 
 test_framework()
